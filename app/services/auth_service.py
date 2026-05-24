@@ -1,5 +1,10 @@
 from datetime import datetime, timedelta, timezone
 
+import secrets
+import hashlib
+
+from app.repositories.user_repo import get_user_by_id
+
 import bcrypt
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -13,6 +18,11 @@ from app.repositories.user_repo import (
 )
 from app.schemas import UserCreate, UserLogin
 
+from app.repositories.refresh_token_repo import (
+    create_refresh_token,
+    get_refresh_token_by_hash,
+    revoke_refresh_token
+)
 
 def hash_password(password: str) -> str:
     password_bytes = password.encode("utf-8")
@@ -99,4 +109,35 @@ def login_user(db: Session, login_data: UserLogin):
         data={"sub": str(user.id)}
     )
 
-    return access_token
+    refresh_token = create_refresh_token_for_user(db, user.id)
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token
+    }
+
+
+def generate_refresh_token() -> str:
+    return secrets.token_urlsafe(64)
+
+
+def hash_refresh_token(refresh_token: str) -> str:
+    return hashlib.sha256(refresh_token.encode("utf-8")).hexdigest()
+
+
+def create_refresh_token_for_user(db: Session, user_id: int) -> str:
+    refresh_token = generate_refresh_token()
+    token_hash = hash_refresh_token(refresh_token)
+
+    expires_at = datetime.now(timezone.utc) + timedelta(
+        days=settings.REFRESH_TOKEN_EXPIRE_DAYS
+    )
+
+    create_refresh_token(
+        db=db,
+        user_id=user_id,
+        token_hash=token_hash,
+        expires_at=expires_at
+    )
+
+    return refresh_token

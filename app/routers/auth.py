@@ -30,8 +30,8 @@ def login(
     db: Session = Depends(get_db)
 ):
     try:
-        access_token = login_user(db, login_data)
-        return {"access_token": access_token}
+        tokens = login_user(db, login_data)
+        return tokens
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
 

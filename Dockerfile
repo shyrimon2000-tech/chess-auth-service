@@ -14,6 +14,8 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
 COPY --chown=appuser:appgroup app ./app
+COPY --chown=appuser:appgroup alembic ./alembic
+COPY --chown=appuser:appgroup alembic.ini .
 
 USER appuser
 
