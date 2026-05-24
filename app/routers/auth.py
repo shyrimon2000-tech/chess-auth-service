@@ -5,7 +5,7 @@ from app.database import get_db
 from app.schemas import UserCreate, UserLogin, UserResponse, TokenResponse, RefreshTokenRequest, LogoutRequest, MessageResponse
 from app.services.auth_service import register_user, login_user, refresh_access_token, logout_user
 from app.models import User
-from app.services.auth_dependencies import get_current_user
+from app.services.auth_dependencies import get_current_user, get_current_admin_user
 
 router = APIRouter(
     prefix="/auth",
@@ -39,6 +39,13 @@ def login(
 @router.get("/me", response_model=UserResponse)
 def get_me(
     current_user: User = Depends(get_current_user)
+):
+    return current_user
+
+
+@router.get("/admin-only", response_model=UserResponse)
+def admin_only(
+    current_user: User = Depends(get_current_admin_user)
 ):
     return current_user
 
