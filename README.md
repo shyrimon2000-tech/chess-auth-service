@@ -1,8 +1,8 @@
 # Chess Auth Service
 
-A standalone authentication service for a chess web application.
+A standalone authentication microservice for a chess web application.
 
-This service handles user registration, login, JWT-based authentication, refresh tokens, logout/session revocation, password hashing, protected user identity lookup, database migrations, automated tests, and MySQL persistence.
+This service handles user registration, login, JWT-based authentication, refresh tokens, logout/session revocation, role-based authorization, password hashing, protected user identity lookup, database migrations, automated tests, and MySQL persistence.
 
 The project is designed as a separate backend microservice that can later be connected to the main chess application or other services.
 
@@ -16,6 +16,8 @@ The project is designed as a separate backend microservice that can later be con
 - Refresh token generation
 - Server-side logout through refresh token revocation
 - Protected `/auth/me` endpoint
+- Role-based access control with `user` and `admin` roles
+- Admin-only protected endpoint
 - Password hashing with bcrypt
 - Refresh tokens stored as hashes
 - MySQL database persistence
@@ -119,6 +121,7 @@ Response:
   "id": 1,
   "username": "alex",
   "email": "alex@example.com",
+  "role": "user",
   "is_active": true,
   "created_at": "2026-05-24T12:00:00",
   "last_seen_at": null
@@ -130,6 +133,7 @@ Notes:
 - Passwords are never stored as plain text.
 - The service stores only bcrypt password hashes.
 - Duplicate email or username registration is rejected.
+- New users are created with the default `user` role.
 
 ---
 
@@ -192,6 +196,7 @@ Response:
   "id": 1,
   "username": "alex",
   "email": "alex@example.com",
+  "role": "user",
   "is_active": true,
   "created_at": "2026-05-24T12:00:00",
   "last_seen_at": "2026-05-24T12:10:00"
@@ -275,6 +280,56 @@ Notes:
 
 ---
 
+### Admin-Only Endpoint
+
+```http
+GET /auth/admin-only
+```
+
+Requires a valid access token that belongs to a user with the `admin` role.
+
+Required header:
+
+```http
+Authorization: Bearer <access_token>
+```
+
+Response for regular users:
+
+```json
+{
+  "detail": "Admin privileges required"
+}
+```
+
+Response status:
+
+```text
+403 Forbidden
+```
+
+Response for admin users:
+
+```json
+{
+  "id": 1,
+  "username": "alex",
+  "email": "alex@example.com",
+  "role": "admin",
+  "is_active": true,
+  "created_at": "2026-05-24T12:00:00",
+  "last_seen_at": "2026-05-24T12:10:00"
+}
+```
+
+Notes:
+
+- This endpoint is used to validate role-based access control.
+- Authentication is handled by the access token.
+- Authorization is handled by checking `current_user.role == "admin"`.
+
+---
+
 ## Authentication Flow
 
 ```text
@@ -282,7 +337,7 @@ Register
 ↓
 Hash password with bcrypt
 ↓
-Store user in MySQL
+Store user in MySQL with role = user
 ↓
 Login
 ↓
@@ -300,6 +355,8 @@ Client sends access token in Authorization header
 ↓
 Protected endpoints validate access token
 ↓
+Backend identifies the current user from JWT subject
+↓
 When access token expires, client sends refresh token
 ↓
 Backend validates refresh token
@@ -307,6 +364,56 @@ Backend validates refresh token
 Backend issues new access token
 ↓
 On logout, backend revokes refresh token
+```
+
+---
+
+## Authorization Flow
+
+The service supports basic role-based access control.
+
+Current roles:
+
+```text
+user
+admin
+```
+
+Default role:
+
+```text
+user
+```
+
+Regular protected endpoints require a valid authenticated user.
+
+Admin-only endpoints require:
+
+```text
+current_user.role == "admin"
+```
+
+Authorization flow:
+
+```text
+Request with access token
+↓
+Validate JWT
+↓
+Load user from database
+↓
+Check account status
+↓
+Check user role
+↓
+Allow or reject request
+```
+
+Example:
+
+```text
+role = user  → /auth/admin-only returns 403
+role = admin → /auth/admin-only returns 200
 ```
 
 ---
@@ -399,6 +506,12 @@ Build and start the service:
 
 ```bash
 docker compose up --build
+```
+
+Run in detached mode:
+
+```bash
+docker compose up -d --build
 ```
 
 The API will be available at:
@@ -516,6 +629,7 @@ id
 username
 email
 hashed_password
+role
 is_active
 created_at
 last_seen_at
@@ -527,6 +641,7 @@ last_seen_at
 | `username` | Unique username |
 | `email` | Unique email address |
 | `hashed_password` | bcrypt password hash |
+| `role` | User authorization role, for example `user` or `admin` |
 | `is_active` | Account enabled/disabled status |
 | `created_at` | User creation timestamp |
 | `last_seen_at` | Last successful login timestamp |
@@ -587,7 +702,7 @@ auth-db:3306
 
 ## Automated Tests
 
-The project includes automated tests for the authentication flow.
+The project includes automated tests for the authentication and authorization flow.
 
 Run tests:
 
@@ -605,11 +720,13 @@ Current test coverage includes:
 - refresh token flow
 - logout
 - refresh after logout failure
+- regular user rejected from admin-only endpoint
+- admin user allowed to access admin-only endpoint
 
 Example result:
 
 ```text
-8 passed
+10 passed
 ```
 
 ---
@@ -625,6 +742,8 @@ Implemented:
 - refresh tokens stored as hashes
 - server-side logout through refresh token revocation
 - protected route dependency
+- role-based access control
+- admin-only dependency
 - account status check with `is_active`
 - secrets loaded from environment variables
 - `.env` excluded from Git
@@ -632,12 +751,12 @@ Implemented:
 - non-root Docker container user
 - internal Docker network for database access
 - database schema changes managed with Alembic migrations
-- automated tests for authentication behavior
+- automated tests for authentication and authorization behavior
 
 Planned improvements:
 
 - refresh token rotation
-- roles and permissions
+- admin user management endpoints
 - rate limiting
 - Redis-backed session/rate-limit storage
 - structured logging
@@ -651,7 +770,7 @@ Planned improvements:
 Current status:
 
 ```text
-Working Docker-based authentication microservice with MySQL, Alembic migrations, JWT access tokens, refresh tokens, logout/session revocation, and automated tests.
+Working Docker-based authentication microservice with MySQL, Alembic migrations, JWT access tokens, refresh tokens, logout/session revocation, role-based authorization, admin-only access checks, and automated tests.
 ```
 
 Implemented endpoints:
@@ -663,6 +782,7 @@ POST /auth/login
 GET  /auth/me
 POST /auth/refresh
 POST /auth/logout
+GET  /auth/admin-only
 ```
 
 Implemented infrastructure:
@@ -676,10 +796,16 @@ Alembic migrations
 pytest test suite
 ```
 
+Current automated test status:
+
+```text
+10 tests passed
+```
+
 Next planned steps:
 
-1. Add roles and permissions
-2. Add refresh token rotation
+1. Add refresh token rotation
+2. Add admin user management endpoints
 3. Add rate limiting
 4. Add CI/CD pipeline
 5. Connect auth-service to the main chess application
