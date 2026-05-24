@@ -1,5 +1,5 @@
 from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -7,15 +7,15 @@ from app.repositories.user_repo import get_user_by_id
 from app.services.auth_service import decode_access_token
 
 
-oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="/auth/login"
-)
+bearer_scheme = HTTPBearer()
 
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db)
 ):
+    token = credentials.credentials
+
     try:
         payload = decode_access_token(token)
 
@@ -40,3 +40,15 @@ def get_current_user(
             detail=str(e),
             headers={"WWW-Authenticate": "Bearer"}
         )
+
+
+def get_current_admin_user(
+    current_user = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Admin privileges required"
+        )
+
+    return current_user
