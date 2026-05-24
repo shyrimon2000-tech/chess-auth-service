@@ -2,9 +2,9 @@
 
 A standalone authentication service for a chess web application.
 
-This service handles user registration, login, JWT-based authentication, password hashing, protected user identity lookup, and MySQL persistence.
+This service handles user registration, login, JWT-based authentication, refresh tokens, logout/session revocation, password hashing, protected user identity lookup, database migrations, automated tests, and MySQL persistence.
 
-The project is designed as a separate backend service that can later be connected to the main chess application or other microservices.
+The project is designed as a separate backend microservice that can later be connected to the main chess application or other services.
 
 ---
 
@@ -13,10 +13,15 @@ The project is designed as a separate backend service that can later be connecte
 - User registration
 - User login
 - JWT access token generation
+- Refresh token generation
+- Server-side logout through refresh token revocation
 - Protected `/auth/me` endpoint
 - Password hashing with bcrypt
+- Refresh tokens stored as hashes
 - MySQL database persistence
 - SQLAlchemy ORM
+- Alembic database migrations
+- Automated tests with pytest
 - Dockerized FastAPI application
 - Docker Compose setup with MySQL
 - Health check endpoint
@@ -31,11 +36,13 @@ The project is designed as a separate backend service that can later be connecte
 - FastAPI
 - Uvicorn
 - SQLAlchemy
+- Alembic
 - MySQL
 - PyMySQL
 - bcrypt
 - python-jose
 - Pydantic Settings
+- pytest
 - Docker
 - Docker Compose
 
@@ -51,12 +58,20 @@ app/
 │   ├── auth_service.py
 │   └── auth_dependencies.py
 ├── repositories/
-│   └── user_repo.py
+│   ├── user_repo.py
+│   └── refresh_token_repo.py
 ├── config.py
 ├── database.py
 ├── main.py
 ├── models.py
 └── schemas.py
+
+alembic/
+├── versions/
+└── env.py
+
+tests/
+└── test_auth.py
 ```
 
 ---
@@ -85,6 +100,8 @@ Response:
 POST /auth/register
 ```
 
+Creates a new user account.
+
 Request body:
 
 ```json
@@ -103,7 +120,7 @@ Response:
   "username": "alex",
   "email": "alex@example.com",
   "is_active": true,
-  "created_at": "2026-05-20T02:04:38",
+  "created_at": "2026-05-24T12:00:00",
   "last_seen_at": null
 }
 ```
@@ -122,6 +139,8 @@ Notes:
 POST /auth/login
 ```
 
+Authenticates a user and returns both an access token and a refresh token.
+
 Request body:
 
 ```json
@@ -135,7 +154,8 @@ Response:
 
 ```json
 {
-  "access_token": "JWT_TOKEN",
+  "access_token": "jwt_access_token",
+  "refresh_token": "random_refresh_token",
   "token_type": "bearer"
 }
 ```
@@ -145,6 +165,9 @@ Notes:
 - The password is verified against the stored bcrypt hash.
 - On successful login, `last_seen_at` is updated.
 - The service returns a signed JWT access token.
+- The service also returns a refresh token for session renewal.
+- The raw refresh token is returned to the client only once.
+- The database stores only a hash of the refresh token.
 
 ---
 
@@ -154,10 +177,12 @@ Notes:
 GET /auth/me
 ```
 
+Returns the currently authenticated user.
+
 Required header:
 
 ```http
-Authorization: Bearer JWT_TOKEN
+Authorization: Bearer <access_token>
 ```
 
 Response:
@@ -168,8 +193,8 @@ Response:
   "username": "alex",
   "email": "alex@example.com",
   "is_active": true,
-  "created_at": "2026-05-20T02:04:38",
-  "last_seen_at": "2026-05-20T02:35:10"
+  "created_at": "2026-05-24T12:00:00",
+  "last_seen_at": "2026-05-24T12:10:00"
 }
 ```
 
@@ -180,6 +205,73 @@ Notes:
 - The user ID is extracted from the JWT `sub` claim.
 - The user is loaded from MySQL.
 - Disabled users are rejected.
+
+---
+
+### Refresh Access Token
+
+```http
+POST /auth/refresh
+```
+
+Uses a valid refresh token to issue a new access token.
+
+Request body:
+
+```json
+{
+  "refresh_token": "random_refresh_token"
+}
+```
+
+Response:
+
+```json
+{
+  "access_token": "new_jwt_access_token",
+  "refresh_token": "same_refresh_token",
+  "token_type": "bearer"
+}
+```
+
+Notes:
+
+- The refresh token is checked against its stored hash.
+- Revoked refresh tokens are rejected.
+- Expired refresh tokens are rejected.
+- Refresh tokens belonging to disabled users are rejected.
+
+---
+
+### Logout
+
+```http
+POST /auth/logout
+```
+
+Revokes the refresh token so it can no longer be used.
+
+Request body:
+
+```json
+{
+  "refresh_token": "random_refresh_token"
+}
+```
+
+Response:
+
+```json
+{
+  "message": "Successfully logged out"
+}
+```
+
+Notes:
+
+- Logout is handled server-side.
+- The refresh token is marked as revoked in the database.
+- After logout, the same refresh token can no longer be used with `/auth/refresh`.
 
 ---
 
@@ -200,11 +292,21 @@ Update last_seen_at
 ↓
 Issue JWT access token
 ↓
-Client sends token in Authorization header
+Issue refresh token
 ↓
-Protected endpoints validate token
+Store refresh token hash in MySQL
 ↓
-Backend identifies current user from JWT subject
+Client sends access token in Authorization header
+↓
+Protected endpoints validate access token
+↓
+When access token expires, client sends refresh token
+↓
+Backend validates refresh token
+↓
+Backend issues new access token
+↓
+On logout, backend revokes refresh token
 ```
 
 ---
@@ -224,12 +326,38 @@ The access token contains minimal identity data:
 
 JWT payload is readable by the client, but it cannot be modified without invalidating the signature.
 
+Access tokens are short-lived and are used to access protected API endpoints.
+
 The service uses these environment variables:
 
 ```text
 JWT_SECRET_KEY
 JWT_ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES
+```
+
+---
+
+## Refresh Token Design
+
+Refresh tokens are long-lived random tokens generated by the backend.
+
+The raw refresh token is returned to the client after login.
+
+The database does not store the raw refresh token. Instead, the service stores a SHA-256 hash of the refresh token.
+
+Refresh tokens allow the client to request a new access token without asking the user to log in again.
+
+Refresh tokens can be revoked during logout.
+
+Stored refresh token fields include:
+
+```text
+user_id
+token_hash
+created_at
+expires_at
+revoked_at
 ```
 
 ---
@@ -254,6 +382,7 @@ DATABASE_URL=mysql+pymysql://chess_user:change-user-password@auth-db:3306/chess_
 JWT_SECRET_KEY=change-this-secret-key
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=7
 ```
 
 Important:
@@ -292,6 +421,46 @@ http://127.0.0.1:8000/health
 
 ---
 
+## Database Migrations
+
+This project uses Alembic for database schema migrations.
+
+The application does not create database tables automatically on startup. Database schema changes are managed through Alembic migrations.
+
+Create a new migration:
+
+```bash
+docker compose exec auth-service alembic revision --autogenerate -m "migration message"
+```
+
+Apply migrations:
+
+```bash
+docker compose exec auth-service alembic upgrade head
+```
+
+Check current migration version:
+
+```bash
+docker compose exec auth-service alembic current
+```
+
+Show migration history:
+
+```bash
+docker compose exec auth-service alembic history
+```
+
+Current database tables:
+
+```text
+alembic_version
+users
+refresh_tokens
+```
+
+---
+
 ## Run Locally without Docker
 
 Create a virtual environment:
@@ -326,13 +495,21 @@ Open Swagger UI:
 http://127.0.0.1:8000/docs
 ```
 
+Note:
+
+When running locally without Docker, make sure `DATABASE_URL` points to a MySQL host that is reachable from the local machine.
+
 ---
 
 ## Database
 
 The service uses MySQL.
 
-Current `users` table:
+### users
+
+Stores user account data.
+
+Fields:
 
 ```text
 id
@@ -344,8 +521,6 @@ created_at
 last_seen_at
 ```
 
-Field meanings:
-
 | Field | Description |
 |---|---|
 | `id` | Internal user ID |
@@ -355,6 +530,34 @@ Field meanings:
 | `is_active` | Account enabled/disabled status |
 | `created_at` | User creation timestamp |
 | `last_seen_at` | Last successful login timestamp |
+
+---
+
+### refresh_tokens
+
+Stores refresh token sessions.
+
+Fields:
+
+```text
+id
+user_id
+token_hash
+created_at
+expires_at
+revoked_at
+```
+
+| Field | Description |
+|---|---|
+| `id` | Internal refresh token record ID |
+| `user_id` | User that owns the refresh token |
+| `token_hash` | SHA-256 hash of the refresh token |
+| `created_at` | Token creation timestamp |
+| `expires_at` | Token expiration timestamp |
+| `revoked_at` | Logout/revocation timestamp |
+
+Refresh tokens can be revoked during logout. Once revoked, they can no longer be used to generate new access tokens.
 
 ---
 
@@ -382,28 +585,61 @@ auth-db:3306
 
 ---
 
+## Automated Tests
+
+The project includes automated tests for the authentication flow.
+
+Run tests:
+
+```bash
+pytest -v
+```
+
+Current test coverage includes:
+
+- user registration
+- duplicate email validation
+- login with correct credentials
+- login with wrong password
+- protected `/auth/me` endpoint
+- refresh token flow
+- logout
+- refresh after logout failure
+
+Example result:
+
+```text
+8 passed
+```
+
+---
+
 ## Security Notes
 
 Implemented:
 
 - bcrypt password hashing
 - JWT access tokens
-- token expiration
+- access token expiration
+- refresh tokens
+- refresh tokens stored as hashes
+- server-side logout through refresh token revocation
 - protected route dependency
 - account status check with `is_active`
 - secrets loaded from environment variables
+- `.env` excluded from Git
+- `.env.example` provided as a safe template
 - non-root Docker container user
 - internal Docker network for database access
+- database schema changes managed with Alembic migrations
+- automated tests for authentication behavior
 
 Planned improvements:
 
-- Alembic database migrations
-- automated tests
-- refresh tokens
-- logout/session revocation
-- Redis-backed token/session storage
+- refresh token rotation
 - roles and permissions
 - rate limiting
+- Redis-backed session/rate-limit storage
 - structured logging
 - CI/CD pipeline
 - production-grade secret management
@@ -415,7 +651,7 @@ Planned improvements:
 Current status:
 
 ```text
-Working local and Docker-based auth service skeleton.
+Working Docker-based authentication microservice with MySQL, Alembic migrations, JWT access tokens, refresh tokens, logout/session revocation, and automated tests.
 ```
 
 Implemented endpoints:
@@ -425,13 +661,25 @@ GET  /health
 POST /auth/register
 POST /auth/login
 GET  /auth/me
+POST /auth/refresh
+POST /auth/logout
+```
+
+Implemented infrastructure:
+
+```text
+Dockerfile
+docker-compose.yml
+MySQL container
+Docker internal network
+Alembic migrations
+pytest test suite
 ```
 
 Next planned steps:
 
-1. Add automated tests
-2. Add Alembic migrations
-3. Add refresh token flow
-4. Add logout/session revocation
-5. Add roles and permissions
-6. Connect auth-service to the main chess application
+1. Add roles and permissions
+2. Add refresh token rotation
+3. Add rate limiting
+4. Add CI/CD pipeline
+5. Connect auth-service to the main chess application
