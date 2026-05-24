@@ -302,3 +302,79 @@ def test_refresh_after_logout_fails():
 
     assert refresh_response.status_code == 401
     assert refresh_response.json()["detail"] == "Refresh token has been revoked"
+
+
+def test_admin_only_endpoint_rejects_regular_user():
+    reset_database()
+
+    client.post(
+        "/auth/register",
+        json={
+            "username": "alex",
+            "email": "alex@example.com",
+            "password": "strong_password",
+        },
+    )
+
+    login_response = client.post(
+        "/auth/login",
+        json={
+            "email": "alex@example.com",
+            "password": "strong_password",
+        },
+    )
+
+    token = login_response.json()["access_token"]
+
+    response = client.get(
+        "/auth/admin-only",
+        headers={
+            "Authorization": f"Bearer {token}",
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Admin privileges required"
+
+
+def test_admin_only_endpoint_allows_admin_user():
+    reset_database()
+
+    client.post(
+        "/auth/register",
+        json={
+            "username": "alex",
+            "email": "alex@example.com",
+            "password": "strong_password",
+        },
+    )
+
+    db = TestingSessionLocal()
+    user = db.query(User).filter(User.email == "alex@example.com").first()
+    user.role = "admin"
+    db.commit()
+    db.close()
+
+    login_response = client.post(
+        "/auth/login",
+        json={
+            "email": "alex@example.com",
+            "password": "strong_password",
+        },
+    )
+
+    token = login_response.json()["access_token"]
+
+    response = client.get(
+        "/auth/admin-only",
+        headers={
+            "Authorization": f"Bearer {token}",
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["email"] == "alex@example.com"
+    assert data["role"] == "admin"
