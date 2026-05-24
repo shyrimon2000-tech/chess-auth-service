@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy.orm import Session
 
@@ -33,7 +33,7 @@ def get_refresh_token_by_hash(db: Session, token_hash: str):
 
 
 def revoke_refresh_token(db: Session, refresh_token: RefreshToken):
-    refresh_token.revoked_at = datetime.now(timezone.utc)
+    refresh_token.revoked_at = datetime.utcnow()
 
     db.commit()
     db.refresh(refresh_token)

@@ -126,6 +126,7 @@ def test_login_successfully_returns_token():
     data = response.json()
 
     assert "access_token" in data
+    assert "refresh_token" in data
     assert data["token_type"] == "bearer"
 
 
@@ -190,3 +191,114 @@ def test_get_current_user_with_token():
     assert data["username"] == "alex"
     assert data["email"] == "alex@example.com"
     assert data["is_active"] is True
+
+
+def test_refresh_returns_new_access_token():
+    reset_database()
+
+    client.post(
+        "/auth/register",
+        json={
+            "username": "alex",
+            "email": "alex@example.com",
+            "password": "strong_password",
+        },
+    )
+
+    login_response = client.post(
+        "/auth/login",
+        json={
+            "email": "alex@example.com",
+            "password": "strong_password",
+        },
+    )
+
+    refresh_token = login_response.json()["refresh_token"]
+
+    refresh_response = client.post(
+        "/auth/refresh",
+        json={
+            "refresh_token": refresh_token,
+        },
+    )
+
+    assert refresh_response.status_code == 200
+
+    data = refresh_response.json()
+
+    assert "access_token" in data
+    assert data["refresh_token"] == refresh_token
+    assert data["token_type"] == "bearer"
+
+
+def test_logout_revokes_refresh_token():
+    reset_database()
+
+    client.post(
+        "/auth/register",
+        json={
+            "username": "alex",
+            "email": "alex@example.com",
+            "password": "strong_password",
+        },
+    )
+
+    login_response = client.post(
+        "/auth/login",
+        json={
+            "email": "alex@example.com",
+            "password": "strong_password",
+        },
+    )
+
+    refresh_token = login_response.json()["refresh_token"]
+
+    logout_response = client.post(
+        "/auth/logout",
+        json={
+            "refresh_token": refresh_token,
+        },
+    )
+
+    assert logout_response.status_code == 200
+    assert logout_response.json()["message"] == "Successfully logged out"
+
+
+def test_refresh_after_logout_fails():
+    reset_database()
+
+    client.post(
+        "/auth/register",
+        json={
+            "username": "alex",
+            "email": "alex@example.com",
+            "password": "strong_password",
+        },
+    )
+
+    login_response = client.post(
+        "/auth/login",
+        json={
+            "email": "alex@example.com",
+            "password": "strong_password",
+        },
+    )
+
+    refresh_token = login_response.json()["refresh_token"]
+
+    client.post(
+        "/auth/logout",
+        json={
+            "refresh_token": refresh_token,
+        },
+    )
+
+    refresh_response = client.post(
+        "/auth/refresh",
+        json={
+            "refresh_token": refresh_token,
+        },
+    )
+
+    assert refresh_response.status_code == 401
+    assert refresh_response.json()["detail"] == "Refresh token has been revoked"

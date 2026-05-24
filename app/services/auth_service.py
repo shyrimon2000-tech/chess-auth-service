@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 import secrets
 import hashlib
@@ -10,7 +10,9 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.config import settings
+
 from app.repositories.user_repo import (
+    get_user_by_id,
     get_user_by_email,
     get_user_by_username,
     create_user,
@@ -41,7 +43,7 @@ def verify_password(password: str, hashed_password: str) -> bool:
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
 
-    expire = datetime.now(timezone.utc) + timedelta(
+    expire = datetime.utcnow() + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
 
@@ -129,7 +131,7 @@ def create_refresh_token_for_user(db: Session, user_id: int) -> str:
     refresh_token = generate_refresh_token()
     token_hash = hash_refresh_token(refresh_token)
 
-    expires_at = datetime.now(timezone.utc) + timedelta(
+    expires_at = datetime.utcnow() + timedelta(
         days=settings.REFRESH_TOKEN_EXPIRE_DAYS
     )
 
@@ -141,3 +143,53 @@ def create_refresh_token_for_user(db: Session, user_id: int) -> str:
     )
 
     return refresh_token
+
+
+def refresh_access_token(db: Session, refresh_token: str):
+    token_hash = hash_refresh_token(refresh_token)
+
+    stored_token = get_refresh_token_by_hash(db, token_hash)
+
+    if not stored_token:
+        raise ValueError("Invalid refresh token")
+
+    if stored_token.revoked_at is not None:
+        raise ValueError("Refresh token has been revoked")
+
+    if stored_token.expires_at < datetime.utcnow():
+        raise ValueError("Refresh token has expired")
+
+    user = get_user_by_id(db, stored_token.user_id)
+
+    if not user:
+        raise ValueError("User not found")
+
+    if not user.is_active:
+        raise ValueError("User account is disabled")
+
+    access_token = create_access_token(
+        data={"sub": str(user.id)}
+    )
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token
+    }
+
+
+def logout_user(db: Session, refresh_token: str):
+    token_hash = hash_refresh_token(refresh_token)
+
+    stored_token = get_refresh_token_by_hash(db, token_hash)
+
+    if not stored_token:
+        raise ValueError("Invalid refresh token")
+
+    if stored_token.revoked_at is not None:
+        raise ValueError("Refresh token already revoked")
+
+    revoke_refresh_token(db, stored_token)
+
+    return {
+        "message": "Successfully logged out"
+    }
