@@ -179,6 +179,7 @@ Notes:
 - The password is verified against the stored bcrypt hash.
 - On successful login, `last_seen_at` is updated.
 - The service returns a signed JWT access token.
+- The access token includes the user's ID in the `sub` claim and the user's role in the `role` claim.
 - The service also returns a refresh token for session renewal.
 - The raw refresh token is returned to the client only once.
 - The database stores only a hash of the refresh token.
@@ -255,6 +256,7 @@ Notes:
 - Revoked refresh tokens are rejected.
 - Expired refresh tokens are rejected.
 - Refresh tokens belonging to disabled users are rejected.
+- The newly issued access token includes the user's ID in the `sub` claim and the user's current role in the `role` claim.
 
 ---
 
@@ -342,6 +344,8 @@ Notes:
 
 ## Authentication Flow
 
+## Authentication Flow
+
 ```text
 Register
 ↓
@@ -355,7 +359,7 @@ Verify password
 ↓
 Update last_seen_at
 ↓
-Issue JWT access token
+Issue JWT access token with sub, role, and exp claims
 ↓
 Issue refresh token
 ↓
@@ -367,13 +371,16 @@ Protected endpoints validate access token
 ↓
 Backend identifies the current user from JWT subject
 ↓
+Backend reads the user's global role from the JWT role claim
+↓
 When access token expires, client sends refresh token
 ↓
 Backend validates refresh token
 ↓
-Backend issues new access token
+Backend issues new access token with updated role claim
 ↓
 On logout, backend revokes refresh token
+
 ```
 
 ---
@@ -430,20 +437,39 @@ role = admin → /auth/admin-only returns 200
 
 ## JWT Design
 
-The access token contains minimal identity data:
+The access token contains minimal identity and authorization data:
 
 ```json
 {
   "sub": "1",
+  "role": "user",
   "exp": "expiration_time"
 }
 ```
+Fields:
 
 `sub` stores the user ID.
+'role' stores the user's global authorization role, for example user or admin.
+'exp' stores the token expiration time.
 
 JWT payload is readable by the client, but it cannot be modified without invalidating the signature.
 
+The access token is signed by the auth-service using `JWT_SECRET_KEY` and `JWT_ALGORITHM`.
+
 Access tokens are short-lived and are used to access protected API endpoints.
+
+Important:
+
+- The frontend receives the access token after login.
+- The frontend sends the access token to protected services using the `Authorization` header.
+- Backend services must never trust `user_id` or `role` from request bodies.
+- Backend services must extract `sub` and `role` only from a valid signed JWT.
+
+Example authorization header:
+
+```http
+Authorization: Bearer <access_token>
+```
 
 The service uses these environment variables:
 
@@ -747,7 +773,9 @@ Implemented:
 
 - bcrypt password hashing
 - JWT access tokens
+- JWT access tokens include `sub`, `role`, and `exp` claims
 - access token expiration
+- access tokens can be validated locally by other backend services using the shared JWT secret
 - refresh tokens
 - refresh tokens stored as hashes
 - server-side logout through refresh token revocation
@@ -780,7 +808,7 @@ Planned improvements:
 Current status:
 
 ```text
-Working Docker-based authentication microservice with MySQL, Alembic migrations, JWT access tokens, refresh tokens, logout/session revocation, role-based authorization, admin-only access checks, and automated tests.
+Working Docker-based authentication microservice with MySQL, Alembic migrations, JWT access tokens containing user identity and role claims, refresh tokens, logout/session revocation, role-based authorization, admin-only access checks, and automated tests.
 ```
 
 Implemented endpoints:
@@ -819,3 +847,4 @@ Next planned steps:
 3. Add rate limiting
 4. Add CI/CD pipeline
 5. Connect auth-service to the main chess application
+6. Add production-grade secret management
