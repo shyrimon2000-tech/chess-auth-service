@@ -10,11 +10,11 @@ The project is designed as a separate backend microservice that can later be con
 
 ## Badges
 
-Main: [![Tests Main](https://github.com/shyrimon2000-tech/chess-auth-service/actions/workflows/tests.yaml/badge.svg?branch=main)](https://github.com/shyrimon2000-tech/bootcamp/actions)
+Main: [![Tests Main](https://github.com/shyrimon2000-tech/chess-auth-service/actions/workflows/tests.yaml/badge.svg?branch=main)](https://github.com/shyrimon2000-tech/chess-auth-service/actions)
 
-Dev: [![Tests Dev](https://github.com/shyrimon2000-tech/chess-auth-service/actions/workflows/tests.yaml/badge.svg?branch=dev)](https://github.com/shyrimon2000-tech/bootcamp/actions)
+Dev: [![Tests Dev](https://github.com/shyrimon2000-tech/chess-auth-service/actions/workflows/tests.yaml/badge.svg?branch=dev)](https://github.com/shyrimon2000-tech/chess-auth-service/actions)
 
-Pull Request: [![Tests PR](https://github.com/shyrimon2000-tech/chess-auth-service/actions/workflows/tests.yaml/badge.svg?event=pull_request)](https://github.com/shyrimon2000-tech/bootcamp/actions)
+Pull Request: [![Tests PR](https://github.com/shyrimon2000-tech/chess-auth-service/actions/workflows/tests.yaml/badge.svg?event=pull_request)](https://github.com/shyrimon2000-tech/chess-auth-service/actions)
 
 ---
 
