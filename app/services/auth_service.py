@@ -108,7 +108,10 @@ def login_user(db: Session, login_data: UserLogin):
     update_user_last_seen(db, user)
 
     access_token = create_access_token(
-        data={"sub": str(user.id)}
+        data={
+            "sub": str(user.id),
+            "role": user.role,
+        }
     )
 
     refresh_token = create_refresh_token_for_user(db, user.id)
@@ -168,7 +171,10 @@ def refresh_access_token(db: Session, refresh_token: str):
         raise ValueError("User account is disabled")
 
     access_token = create_access_token(
-        data={"sub": str(user.id)}
+        data={
+            "sub": str(user.id),
+            "role": user.role,
+        }
     )
 
     return {
