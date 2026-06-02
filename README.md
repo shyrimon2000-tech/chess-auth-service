@@ -8,6 +8,14 @@ The project is designed as a separate backend microservice that can later be con
 
 ---
 
+## Badges
+
+![Tests Status In Main Branch](https://github.com/shyrimon2000-tech/chess-auth-service/workflows/Tests/badge.svg?branch=main)
+![Tests Status In Dev Branch](https://github.com/shyrimon2000-tech/chess-auth-service/workflows/Tests/badge.svg?branch=dev)
+![Tests Status On Pull Request](https://github.com/shyrimon2000-tech/chess-auth-service/workflows/Tests/badge.svg?event=pull_request)
+
+---
+
 ## Features
 
 - User registration
