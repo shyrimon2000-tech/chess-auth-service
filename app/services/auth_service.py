@@ -171,6 +171,10 @@ def refresh_access_token(db: Session, refresh_token: str):
     if not user.is_active:
         raise ValueError("User account is disabled")
 
+    revoke_refresh_token(db, stored_token)
+
+    new_refresh_token = create_refresh_token_for_user(db, user.id)
+
     access_token = create_access_token(
         data={
             "sub": str(user.id),
@@ -180,7 +184,7 @@ def refresh_access_token(db: Session, refresh_token: str):
 
     return {
         "access_token": access_token,
-        "refresh_token": refresh_token
+        "refresh_token": new_refresh_token
     }
 
 

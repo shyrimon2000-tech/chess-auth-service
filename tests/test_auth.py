@@ -227,8 +227,45 @@ def test_refresh_returns_new_access_token():
     data = refresh_response.json()
 
     assert "access_token" in data
-    assert data["refresh_token"] == refresh_token
+    assert "refresh_token" in data
+    assert data["refresh_token"] != refresh_token
     assert data["token_type"] == "bearer"
+
+
+def test_old_refresh_token_invalid_after_rotation():
+    reset_database()
+
+    client.post(
+        "/auth/register",
+        json={
+            "username": "alex",
+            "email": "alex@example.com",
+            "password": "strong_password",
+        },
+    )
+
+    login_response = client.post(
+        "/auth/login",
+        json={
+            "email": "alex@example.com",
+            "password": "strong_password",
+        },
+    )
+
+    old_refresh_token = login_response.json()["refresh_token"]
+
+    client.post(
+        "/auth/refresh",
+        json={"refresh_token": old_refresh_token},
+    )
+
+    response = client.post(
+        "/auth/refresh",
+        json={"refresh_token": old_refresh_token},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Refresh token has been revoked"
 
 
 def test_logout_revokes_refresh_token():
