@@ -10,11 +10,11 @@ The project is designed as a separate backend microservice that can later be con
 
 ## Badges
 
-Main: [![Tests Main](https://github.com/shyrimon2000-tech/chess-auth-service/actions/workflows/tests.yaml/badge.svg?branch=main)](https://github.com/shyrimon2000-tech/chess-auth-service/actions)
+Main: [![CI Main](https://github.com/shyrimon2000-tech/chess-auth-service/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/shyrimon2000-tech/chess-auth-service/actions)
 
-Dev: [![Tests Dev](https://github.com/shyrimon2000-tech/chess-auth-service/actions/workflows/tests.yaml/badge.svg?branch=dev)](https://github.com/shyrimon2000-tech/chess-auth-service/actions)
+Dev: [![CI Dev](https://github.com/shyrimon2000-tech/chess-auth-service/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/shyrimon2000-tech/chess-auth-service/actions)
 
-Pull Request: [![Tests PR](https://github.com/shyrimon2000-tech/chess-auth-service/actions/workflows/tests.yaml/badge.svg?event=pull_request)](https://github.com/shyrimon2000-tech/chess-auth-service/actions)
+Pull Request: [![CI PR](https://github.com/shyrimon2000-tech/chess-auth-service/actions/workflows/ci.yml/badge.svg?event=pull_request)](https://github.com/shyrimon2000-tech/chess-auth-service/actions)
 
 ---
 
@@ -797,6 +797,7 @@ Implemented:
 - internal Docker network for database access
 - database schema changes managed with Alembic migrations
 - automated tests for authentication and authorization behavior
+- CI pipeline with lint (ruff), type check (mypy), tests, and Docker build
 
 Planned improvements:
 
@@ -804,7 +805,7 @@ Planned improvements:
 - rate limiting
 - Redis-backed session/rate-limit storage
 - structured logging
-- CI/CD pipeline
+- CD pipeline (push to registry, deploy to Kubernetes)
 - production-grade secret management
 
 ---
