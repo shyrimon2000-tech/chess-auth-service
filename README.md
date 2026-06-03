@@ -245,7 +245,7 @@ Response:
 ```json
 {
   "access_token": "new_jwt_access_token",
-  "refresh_token": "same_refresh_token",
+  "refresh_token": "new_refresh_token",
   "token_type": "bearer"
 }
 ```
@@ -257,6 +257,7 @@ Notes:
 - Expired refresh tokens are rejected.
 - Refresh tokens belonging to disabled users are rejected.
 - The newly issued access token includes the user's ID in the `sub` claim and the user's current role in the `role` claim.
+- The old refresh token is revoked and a new one is issued on every call (rotation). Using the old token again returns 401.
 
 ---
 
@@ -491,7 +492,7 @@ The database does not store the raw refresh token. Instead, the service stores a
 
 Refresh tokens allow the client to request a new access token without asking the user to log in again.
 
-Refresh tokens can be revoked during logout.
+Refresh tokens are rotated on every use — the old token is revoked and a new one is issued. Refresh tokens can also be explicitly revoked during logout.
 
 Stored refresh token fields include:
 
@@ -757,7 +758,8 @@ Current test coverage includes:
 - login with disabled account
 - protected `/auth/me` endpoint
 - protected `/auth/me` with disabled account
-- refresh token flow
+- refresh token flow with rotation
+- old refresh token rejected after rotation
 - logout
 - refresh after logout failure
 - regular user rejected from admin-only endpoint
@@ -766,7 +768,7 @@ Current test coverage includes:
 Example result:
 
 ```text
-12 passed
+13 passed
 ```
 
 ---
@@ -782,6 +784,7 @@ Implemented:
 - access tokens can be validated locally by other backend services using the shared JWT secret
 - refresh tokens
 - refresh tokens stored as hashes
+- refresh token rotation on every use
 - server-side logout through refresh token revocation
 - protected route dependency
 - role-based access control
@@ -797,7 +800,6 @@ Implemented:
 
 Planned improvements:
 
-- refresh token rotation
 - admin user management endpoints
 - rate limiting
 - Redis-backed session/rate-limit storage
@@ -841,14 +843,13 @@ pytest test suite
 Current automated test status:
 
 ```text
-12 tests passed
+13 tests passed
 ```
 
 Next planned steps:
 
-1. Add refresh token rotation
-2. Add admin user management endpoints
-3. Add rate limiting
-4. Add CI/CD pipeline
-5. Connect auth-service to the main chess application
-6. Add production-grade secret management
+1. Add admin user management endpoints
+2. Add rate limiting
+3. Add CI/CD pipeline
+4. Connect auth-service to the main chess application
+5. Add production-grade secret management
