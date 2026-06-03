@@ -31,3 +31,15 @@ jobs:
 
       - name: Run tests
         run: python -m pytest -v tests
+
+  docker-build:
+    name: Docker build
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t chess-auth-service .
