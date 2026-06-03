@@ -166,10 +166,14 @@ Login → generate raw token → SHA-256 hash → store hash in DB → return ra
                                                                          ↓
                                              POST /auth/refresh with raw token
                                                                          ↓
-                                             hash incoming token → look up by hash → validate → issue new access token
+                                             hash → look up → validate → revoke old token → generate new token → store new hash
+                                                                         ↓
+                                             return new access token + new refresh token (old token is now dead)
                                                                          ↓
                                              POST /auth/logout with raw token → set revoked_at
 ```
+
+Each call to `/auth/refresh` rotates the refresh token — the client must use the new token on the next refresh. Using the old token after rotation returns 401 "Refresh token has been revoked".
 
 ## Key Conventions
 
@@ -261,6 +265,8 @@ CI sets `DATABASE_URL=sqlite:///./test.db` and `JWT_SECRET_KEY=test-secret-key-f
 
 To test an admin flow, directly update the `User.role` via `TestingSessionLocal` before login — there is no admin-promotion endpoint yet.
 
+After calling `/auth/refresh`, the returned `refresh_token` will be different from the one sent. Tests must not assert `data["refresh_token"] == original_token`.
+
 ## What To Avoid
 
 **Layer violations**
@@ -274,6 +280,7 @@ To test an admin flow, directly update the `User.role` via `TestingSessionLocal`
 
 **Token handling**
 - Do not store raw refresh tokens — always store only the SHA-256 hash
+- Do not return the same refresh token from `/auth/refresh` — rotation must always issue a new one
 - Do not embed sensitive data in the JWT payload — only `sub`, `role`, `exp`
 
 **Infrastructure**
