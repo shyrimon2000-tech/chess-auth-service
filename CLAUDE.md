@@ -205,6 +205,39 @@ Never trust `user_id` or `role` from request body or query params. Always read t
 
 `sub` is the user ID as a string. `role` is the user's current role at time of issuance.
 
+## CI/CD Pipeline
+
+Pipeline runs on every push to `main`/`dev` and on PRs:
+
+```
+lint ──┐
+       ├──▶ test ──▶ docker-build ──▶ publish (semver tags only)
+type ──┘
+```
+
+| Job | Tool | Runs on |
+|---|---|---|
+| `lint` | ruff | every push / PR |
+| `type-check` | mypy | every push / PR |
+| `test` | pytest | every push / PR |
+| `docker-build` | docker build | every push / PR |
+| `publish` | docker push → GHCR | semver tags only |
+
+**Publishing a new version:**
+```bash
+git tag 1.3.0
+git push origin 1.3.0
+```
+
+This triggers the full pipeline. On success, the image is pushed to:
+```
+ghcr.io/shyrimon2000-tech/chess-auth-service:1.3.0
+```
+
+The GHCR package is **private**. Kubernetes clusters need an `imagePullSecret` with a GitHub PAT (`read:packages` scope) to pull the image.
+
+Tag format is semver without `v` prefix: `1.2.0`, not `v1.2.0`.
+
 ## Commands
 
 **Run locally** (requires a reachable MySQL instance and a valid `.env`):
