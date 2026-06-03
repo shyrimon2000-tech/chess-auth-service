@@ -629,7 +629,7 @@ Windows PowerShell:
 Install dependencies:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
 
 Run the service:
@@ -644,9 +644,11 @@ Open Swagger UI:
 http://127.0.0.1:8000/docs
 ```
 
-Note:
+Notes:
 
-When running locally without Docker, make sure `DATABASE_URL` points to a MySQL host that is reachable from the local machine.
+- `requirements.txt` contains production dependencies only.
+- `requirements-dev.txt` includes `requirements.txt` and adds `pytest` and `httpx` for running tests.
+- When running locally without Docker, make sure `DATABASE_URL` points to a MySQL host that is reachable from the local machine.
 
 ---
 
@@ -752,7 +754,9 @@ Current test coverage includes:
 - duplicate email validation
 - login with correct credentials
 - login with wrong password
+- login with disabled account
 - protected `/auth/me` endpoint
+- protected `/auth/me` with disabled account
 - refresh token flow
 - logout
 - refresh after logout failure
@@ -762,7 +766,7 @@ Current test coverage includes:
 Example result:
 
 ```text
-10 passed
+12 passed
 ```
 
 ---
@@ -837,7 +841,7 @@ pytest test suite
 Current automated test status:
 
 ```text
-10 tests passed
+12 tests passed
 ```
 
 Next planned steps:
