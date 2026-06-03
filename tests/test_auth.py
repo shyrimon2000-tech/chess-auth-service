@@ -337,6 +337,73 @@ def test_admin_only_endpoint_rejects_regular_user():
     assert response.json()["detail"] == "Admin privileges required"
 
 
+def test_login_with_disabled_account_fails():
+    reset_database()
+
+    client.post(
+        "/auth/register",
+        json={
+            "username": "alex",
+            "email": "alex@example.com",
+            "password": "strong_password",
+        },
+    )
+
+    db = TestingSessionLocal()
+    user = db.query(User).filter(User.email == "alex@example.com").first()
+    user.is_active = False
+    db.commit()
+    db.close()
+
+    response = client.post(
+        "/auth/login",
+        json={
+            "email": "alex@example.com",
+            "password": "strong_password",
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "User account is disabled"
+
+
+def test_get_me_with_disabled_account_fails():
+    reset_database()
+
+    client.post(
+        "/auth/register",
+        json={
+            "username": "alex",
+            "email": "alex@example.com",
+            "password": "strong_password",
+        },
+    )
+
+    login_response = client.post(
+        "/auth/login",
+        json={
+            "email": "alex@example.com",
+            "password": "strong_password",
+        },
+    )
+
+    token = login_response.json()["access_token"]
+
+    db = TestingSessionLocal()
+    user = db.query(User).filter(User.email == "alex@example.com").first()
+    user.is_active = False
+    db.commit()
+    db.close()
+
+    response = client.get(
+        "/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "User account is disabled"
+
+
 def test_admin_only_endpoint_allows_admin_user():
     reset_database()
 

@@ -1,9 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import secrets
 import hashlib
-
-from app.repositories.user_repo import get_user_by_id
 
 import bcrypt
 from jose import JWTError, jwt
@@ -43,7 +41,7 @@ def verify_password(password: str, hashed_password: str) -> bool:
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
 
-    expire = datetime.utcnow() + timedelta(
+    expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
 
@@ -134,7 +132,7 @@ def create_refresh_token_for_user(db: Session, user_id: int) -> str:
     refresh_token = generate_refresh_token()
     token_hash = hash_refresh_token(refresh_token)
 
-    expires_at = datetime.utcnow() + timedelta(
+    expires_at = datetime.now(timezone.utc) + timedelta(
         days=settings.REFRESH_TOKEN_EXPIRE_DAYS
     )
 
@@ -159,7 +157,10 @@ def refresh_access_token(db: Session, refresh_token: str):
     if stored_token.revoked_at is not None:
         raise ValueError("Refresh token has been revoked")
 
-    if stored_token.expires_at < datetime.utcnow():
+    expires_at = stored_token.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < datetime.now(timezone.utc):
         raise ValueError("Refresh token has expired")
 
     user = get_user_by_id(db, stored_token.user_id)
