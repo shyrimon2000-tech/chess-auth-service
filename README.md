@@ -345,8 +345,6 @@ Notes:
 
 ## Authentication Flow
 
-## Authentication Flow
-
 ```text
 Register
 ↓
