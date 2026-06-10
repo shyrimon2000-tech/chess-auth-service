@@ -16,7 +16,7 @@ app.include_router(auth_router)
 @app.get("/")
 def root():
     return {
-        "service": "chess-game-service",
+        "service": "chess-auth-service",
         "status": "running"
     }
 
