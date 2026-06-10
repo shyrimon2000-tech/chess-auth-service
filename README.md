@@ -762,11 +762,12 @@ Current test coverage includes:
 - refresh after logout failure
 - regular user rejected from admin-only endpoint
 - admin user allowed to access admin-only endpoint
+- invalid token rejected on protected endpoint
 
 Example result:
 
 ```text
-13 passed
+14 passed
 ```
 
 ---
@@ -844,7 +845,7 @@ CI pipeline (lint, type check, tests, Docker build, publish to GHCR)
 Current automated test status:
 
 ```text
-13 tests passed
+14 tests passed
 ```
 
 Next planned steps:
