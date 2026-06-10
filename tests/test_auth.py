@@ -482,3 +482,14 @@ def test_admin_only_endpoint_allows_admin_user():
 
     assert data["email"] == "alex@example.com"
     assert data["role"] == "admin"
+
+
+def test_get_me_with_invalid_token_fails():
+    reset_database()
+
+    response = client.get(
+        "/auth/me",
+        headers={"Authorization": "Bearer invalid.token.here"},
+    )
+
+    assert response.status_code == 401

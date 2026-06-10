@@ -13,6 +13,14 @@ app = FastAPI(
 app.include_router(auth_router)
 
 
+@app.get("/")
+def root():
+    return {
+        "service": "chess-game-service",
+        "status": "running"
+    }
+
+
 @app.get("/health")
 def health_check():
     return {
