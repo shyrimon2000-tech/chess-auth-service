@@ -109,6 +109,7 @@ def login_user(db: Session, login_data: UserLogin):
         data={
             "sub": str(user.id),
             "role": user.role,
+            "username": user.username,
         }
     )
 
@@ -179,6 +180,7 @@ def refresh_access_token(db: Session, refresh_token: str):
         data={
             "sub": str(user.id),
             "role": user.role,
+            "username": user.username,
         }
     )
 
