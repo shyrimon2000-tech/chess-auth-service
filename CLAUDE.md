@@ -40,7 +40,7 @@ This service is NOT responsible for:
 |---|---|---|
 | chess-auth-service | **This repo** | Issues JWT tokens, manages users |
 | chess-room-service | Implemented | Room lifecycle and matchmaking |
-| chess-game-service | Planned | WebSocket gameplay, game results, disconnect logic |
+| chess-game-service | Implemented | WebSocket gameplay, game results, disconnect logic |
 | presence-service | Optional future split | Online user tracking |
 
 The services are designed as separate Docker Compose projects today and will later be deployed to Kubernetes.
@@ -63,7 +63,7 @@ chess-room-service validates tokens issued by this service without calling auth-
 - If `role` is missing → room-service returns 401
 - If `JWT_SECRET_KEY` or `JWT_ALGORITHM` differs between services → room-service returns 401 on every request
 
-**Redis event bus (room-service → future game-service):**
+**Redis event bus (room-service → game-service):**
 
 When room-service transitions a room to `active` status, it publishes to the Redis channel `room_events`:
 
@@ -76,11 +76,11 @@ When room-service transitions a room to `active` status, it publishes to the Red
 }
 ```
 
-The `white_player_id` and `black_player_id` values are the `sub` integers from auth-service JWTs. Future game-service will subscribe to this channel to start a game session.
+The `white_player_id` and `black_player_id` values are the `sub` integers from auth-service JWTs. Game-service subscribes to this channel to activate the game session.
 
 ## Architecture
 
-This service follows a strict 3-layer pattern. Never skip or bypass layers.
+This service follows a strict 4-layer pattern. Never skip or bypass layers.
 
 ```
 routers → services → repositories → models
@@ -111,7 +111,7 @@ routers → services → repositories → models
 
 **`app/config.py`** — `pydantic-settings` singleton (`settings`) loaded from `.env`
 
-**`app/database.py`** — Engine, session factory, `Base`, and `get_db` FastAPI dependency
+**`app/database.py`** — Engine (`pool_pre_ping=True`), session factory, `Base`, `get_db` FastAPI dependency, and `wait_for_db()` startup probe (tenacity retry)
 
 ## Database Model
 
@@ -200,10 +200,10 @@ Never trust `user_id` or `role` from request body or query params. Always read t
 ### JWT Payload
 
 ```json
-{ "sub": "1", "role": "user", "exp": 1234567890 }
+{ "sub": "1", "role": "user", "username": "alex", "exp": 1234567890 }
 ```
 
-`sub` is the user ID as a string. `role` is the user's current role at time of issuance.
+`sub` is the user ID as a string. `role` is the user's current role at time of issuance. `username` is included so other services can display the player name without a DB lookup.
 
 ## CI/CD Pipeline
 
@@ -268,7 +268,7 @@ pytest -v
 
 **Run a single test:**
 ```bash
-pytest tests/test_auth.py::test_register_user_successfully -v
+pytest tests/test_auth.py::test_register_returns_user -v
 ```
 
 ## Environment Setup
@@ -292,7 +292,7 @@ cp .env.example .env
 
 ## Testing Notes
 
-Tests use an in-memory SQLite database (via `StaticPool`) with the real `get_db` dependency overridden. No MySQL is needed to run tests. Each test calls `reset_database()` to drop and recreate all tables, so tests are fully isolated.
+Tests use an in-memory SQLite database (via `StaticPool`) with the real `get_db` dependency overridden. No MySQL is needed to run tests. An `autouse` fixture drops and recreates all tables before each test so tests are fully isolated.
 
 CI sets `DATABASE_URL=sqlite:///./test.db` and `JWT_SECRET_KEY=test-secret-key-for-ci-only` as env vars to satisfy `pydantic-settings` on import, even though the test file creates its own engine.
 

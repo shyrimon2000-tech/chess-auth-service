@@ -1,13 +1,21 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
-# from app.database import Base, engine
+from app.database import wait_for_db
 from app.routers.auth import router as auth_router
-# from app import models # noqa: F401
 
-# Base.metadata.create_all(bind=engine)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    wait_for_db()
+    yield
+
 
 app = FastAPI(
-    title="Chess Auth Service"
+    title="Chess Auth Service",
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.include_router(auth_router)

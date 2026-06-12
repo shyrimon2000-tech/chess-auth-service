@@ -54,6 +54,7 @@ Pull Request: [![CI PR](https://github.com/shyrimon2000-tech/chess-auth-service/
 - bcrypt
 - python-jose
 - Pydantic Settings
+- tenacity
 - pytest
 - Docker
 - Docker Compose
@@ -442,14 +443,17 @@ The access token contains minimal identity and authorization data:
 {
   "sub": "1",
   "role": "user",
+  "username": "alex",
   "exp": "expiration_time"
 }
 ```
+
 Fields:
 
-`sub` stores the user ID.
-'role' stores the user's global authorization role, for example user or admin.
-'exp' stores the token expiration time.
+- `sub` — user ID as a string
+- `role` — user's authorization role (`user` or `admin`)
+- `username` — username, included so other services can display the player name without a DB lookup
+- `exp` — token expiration time
 
 JWT payload is readable by the client, but it cannot be modified without invalidating the signature.
 
@@ -653,63 +657,15 @@ Notes:
 
 ## Database
 
-The service uses MySQL.
+The service uses MySQL with two tables: `users` and `refresh_tokens`. Schema details are covered in the Database Model section of CLAUDE.md.
 
-### users
-
-Stores user account data.
-
-Fields:
+Current tables:
 
 ```text
-id
-username
-email
-hashed_password
-role
-is_active
-created_at
-last_seen_at
+alembic_version
+users
+refresh_tokens
 ```
-
-| Field | Description |
-|---|---|
-| `id` | Internal user ID |
-| `username` | Unique username |
-| `email` | Unique email address |
-| `hashed_password` | bcrypt password hash |
-| `role` | User authorization role, for example `user` or `admin` |
-| `is_active` | Account enabled/disabled status |
-| `created_at` | User creation timestamp |
-| `last_seen_at` | Last successful login timestamp |
-
----
-
-### refresh_tokens
-
-Stores refresh token sessions.
-
-Fields:
-
-```text
-id
-user_id
-token_hash
-created_at
-expires_at
-revoked_at
-```
-
-| Field | Description |
-|---|---|
-| `id` | Internal refresh token record ID |
-| `user_id` | User that owns the refresh token |
-| `token_hash` | SHA-256 hash of the refresh token |
-| `created_at` | Token creation timestamp |
-| `expires_at` | Token expiration timestamp |
-| `revoked_at` | Logout/revocation timestamp |
-
-Refresh tokens can be revoked during logout. Once revoked, they can no longer be used to generate new access tokens.
 
 ---
 
@@ -749,25 +705,34 @@ pytest -v
 
 Current test coverage includes:
 
-- user registration
-- duplicate email validation
-- login with correct credentials
-- login with wrong password
-- login with disabled account
-- protected `/auth/me` endpoint
-- protected `/auth/me` with disabled account
-- refresh token flow with rotation
+- user registration — returns correct fields, `last_seen_at` is null
+- duplicate email rejected
+- duplicate username rejected
+- invalid email format rejected (422)
+- login returns access token and refresh token
+- `last_seen_at` updated on login
+- wrong password rejected
+- non-existent email rejected
+- disabled account rejected at login
+- `GET /auth/me` with valid token
+- `GET /auth/me` without token rejected
+- `GET /auth/me` with invalid token rejected
+- `GET /auth/me` with disabled account rejected
+- admin-only endpoint rejects regular user
+- admin-only endpoint allows admin
+- refresh returns new tokens with rotation
 - old refresh token rejected after rotation
-- logout
-- refresh after logout failure
-- regular user rejected from admin-only endpoint
-- admin user allowed to access admin-only endpoint
-- invalid token rejected on protected endpoint
+- invalid refresh token rejected
+- expired refresh token rejected
+- logout succeeds
+- refresh after logout rejected
+- double logout rejected
+- invalid token on logout rejected
 
 Example result:
 
 ```text
-14 passed
+24 passed
 ```
 
 ---
@@ -845,7 +810,7 @@ CI pipeline (lint, type check, tests, Docker build, publish to GHCR)
 Current automated test status:
 
 ```text
-14 tests passed
+24 tests passed
 ```
 
 Next planned steps:
