@@ -5,8 +5,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.database import Base, get_db
+from app.limiter import limiter as rate_limiter
 from app.models import RefreshToken, User
 from app.routers.auth import router as auth_router
 from app.services.auth_service import hash_refresh_token
@@ -32,12 +35,15 @@ def override_get_db():
 test_app = FastAPI()
 test_app.include_router(auth_router)
 test_app.dependency_overrides[get_db] = override_get_db
+test_app.state.limiter = rate_limiter
+test_app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 client = TestClient(test_app)
 
 
 @pytest.fixture(autouse=True)
 def reset_db():
     Base.metadata.create_all(bind=engine)
+    rate_limiter._storage.reset()
     yield
     Base.metadata.drop_all(bind=engine)
 
@@ -270,3 +276,33 @@ def test_logout_with_invalid_token_fails():
     r = client.post("/auth/logout", json={"refresh_token": "fake-token"})
     assert r.status_code == 401
     assert r.json()["detail"] == "Invalid refresh token"
+
+
+# --- Rate limiting ---
+
+def test_register_rate_limit():
+    for i in range(5):
+        r = _register(username=f"user{i}", email=f"user{i}@example.com")
+        assert r.status_code == 200
+    r = _register(username="user5", email="user5@example.com")
+    assert r.status_code == 429
+
+
+def test_login_rate_limit():
+    _register()
+    for _ in range(10):
+        r = _login()
+        assert r.status_code == 200
+    r = _login()
+    assert r.status_code == 429
+
+
+def test_refresh_rate_limit():
+    _register()
+    rt = _login().json()["refresh_token"]
+    for _ in range(30):
+        r = client.post("/auth/refresh", json={"refresh_token": rt})
+        assert r.status_code == 200
+        rt = r.json()["refresh_token"]
+    r = client.post("/auth/refresh", json={"refresh_token": rt})
+    assert r.status_code == 429
