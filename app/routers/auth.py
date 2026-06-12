@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.limiter import limiter
 from app.schemas import UserCreate, UserLogin, UserResponse, TokenResponse, RefreshTokenRequest, LogoutRequest, MessageResponse
 from app.services.auth_service import register_user, login_user, refresh_access_token, logout_user
 from app.models import User
@@ -14,7 +15,9 @@ router = APIRouter(
 
 
 @router.post("/register", response_model=UserResponse)
+@limiter.limit("5/minute")
 def register(
+    request: Request,
     user_data: UserCreate,
     db: Session = Depends(get_db)
 ):
@@ -25,7 +28,9 @@ def register(
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("10/minute")
 def login(
+    request: Request,
     login_data: UserLogin,
     db: Session = Depends(get_db)
 ):
@@ -51,7 +56,9 @@ def admin_only(
 
 
 @router.post("/refresh", response_model=TokenResponse)
+@limiter.limit("30/minute")
 def refresh_token(
+    request: Request,
     refresh_data: RefreshTokenRequest,
     db: Session = Depends(get_db)
 ):
