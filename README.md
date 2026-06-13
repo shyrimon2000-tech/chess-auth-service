@@ -760,6 +760,7 @@ Implemented:
 - non-root Docker container user
 - internal Docker network for database access
 - database schema changes managed with Alembic migrations
+- rate limiting on `/register`, `/login`, `/refresh` via slowapi (5 req/min per IP)
 - automated tests for authentication and authorization behavior
 - CI pipeline with lint (ruff), type check (mypy), tests, and Docker build
 - Docker image published to private GHCR on semver tags (`ghcr.io/shyrimon2000-tech/chess-auth-service:<version>`)
@@ -767,8 +768,7 @@ Implemented:
 Planned improvements:
 
 - admin user management endpoints
-- rate limiting
-- Redis-backed session/rate-limit storage
+- Redis-backed session storage
 - structured logging
 - deploy to Kubernetes with ArgoCD
 - production-grade secret management
@@ -816,7 +816,6 @@ Current automated test status:
 Next planned steps:
 
 1. Add admin user management endpoints
-2. Add rate limiting
-3. Deploy to Kubernetes with ArgoCD
+2. Deploy to Kubernetes with ArgoCD
 4. Connect auth-service to the main chess application
 5. Add production-grade secret management
