@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta, timezone
 
 import secrets
@@ -8,7 +9,6 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.config import settings
-
 from app.repositories.user_repo import (
     get_user_by_id,
     get_user_by_email,
@@ -23,6 +23,9 @@ from app.repositories.refresh_token_repo import (
     get_refresh_token_by_hash,
     revoke_refresh_token
 )
+
+logger = logging.getLogger(__name__)
+
 
 def hash_password(password: str) -> str:
     password_bytes = password.encode("utf-8")
@@ -88,6 +91,7 @@ def register_user(db: Session, user_data: UserCreate):
         hashed_password=hashed_password
     )
 
+    logger.info("User registered: %s (id=%s)", user.username, user.id)
     return user
 
 
@@ -115,6 +119,7 @@ def login_user(db: Session, login_data: UserLogin):
 
     refresh_token = create_refresh_token_for_user(db, user.id)
 
+    logger.info("User logged in: %s (id=%s)", user.username, user.id)
     return {
         "access_token": access_token,
         "refresh_token": refresh_token
@@ -203,6 +208,7 @@ def logout_user(db: Session, refresh_token: str):
 
     revoke_refresh_token(db, stored_token)
 
+    logger.info("User logged out (user_id=%s)", stored_token.user_id)
     return {
         "message": "Successfully logged out"
     }
