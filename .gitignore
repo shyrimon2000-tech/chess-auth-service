@@ -20,3 +20,7 @@ dist/
 build/
 *.log
 .claude/settings.local.json
+.env.combined
+.mypy_cache/
+.ruff_cache/
+e2e_tests/.reg_times.json

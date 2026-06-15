@@ -1,5 +1,6 @@
 .git
 .gitignore
+.github/
 .env
 .claude
 CLAUDE.md
@@ -19,5 +20,16 @@ __pycache__/
 dist/
 build/
 .DS_Store
-docker-compose.yml
-docker-compose.yaml
+docker-compose*.yml
+docker-compose*.yaml
+nginx.dev.conf
+e2e_tests/
+e2e_versions.env
+pytest-e2e.ini
+requirements-e2e.txt
+requirements-dev.txt
+.env.e2e
+.env.combined
+.mypy_cache/
+.ruff_cache/
+mypy.ini
