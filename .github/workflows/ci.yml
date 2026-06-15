@@ -55,7 +55,6 @@ jobs:
   test:
     name: Tests
     runs-on: ubuntu-latest
-    needs: [lint, type-check]
 
     env:
       DATABASE_URL: sqlite:///./test.db
@@ -81,7 +80,7 @@ jobs:
   docker-build:
     name: Docker build
     runs-on: ubuntu-latest
-    needs: test
+    needs: [lint, type-check, test]
 
     steps:
       - name: Checkout repository
@@ -89,6 +88,15 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t chess-auth-service .
+
+      - name: Save Docker image
+        run: docker save chess-auth-service | gzip > image.tar.gz
+
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: image.tar.gz
 
   publish:
     name: Publish Docker image
@@ -101,8 +109,13 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker image
+        run: docker load < image.tar.gz
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -115,9 +128,7 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ghcr.io/shyrimon2000-tech/chess-auth-service:${{ steps.version.outputs.VERSION }}
+      - name: Tag and push
+        run: |
+          docker tag chess-auth-service ghcr.io/shyrimon2000-tech/chess-auth-service:${{ steps.version.outputs.VERSION }}
+          docker push ghcr.io/shyrimon2000-tech/chess-auth-service:${{ steps.version.outputs.VERSION }}
