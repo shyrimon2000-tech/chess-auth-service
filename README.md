@@ -10,11 +10,10 @@ The project is designed as a separate backend microservice that can later be con
 
 ## Badges
 
-Main: [![CI Main](https://github.com/shyrimon2000-tech/chess-auth-service/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/shyrimon2000-tech/chess-auth-service/actions)
-
 Dev: [![CI Dev](https://github.com/shyrimon2000-tech/chess-auth-service/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/shyrimon2000-tech/chess-auth-service/actions)
 
 Pull Request: [![CI PR](https://github.com/shyrimon2000-tech/chess-auth-service/actions/workflows/ci.yml/badge.svg?event=pull_request)](https://github.com/shyrimon2000-tech/chess-auth-service/actions)
+
 
 ---
 
