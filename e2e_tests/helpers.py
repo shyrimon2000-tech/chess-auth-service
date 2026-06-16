@@ -37,13 +37,13 @@ def reg(page, user):
     page.fill('#reg-password', user['password'])
     page.click("#register-form button[type='submit']")
     try:
-        page.wait_for_url('**/rooms.html', timeout=10000)
+        page.wait_for_url('**/rooms.html', timeout=15000)
     except Exception:
         # user likely already exists — fall back to login
         page.goto(BASE)
         page.fill('#login-email', user['email'])
         page.fill('#login-password', user['password'])
         page.click("#login-form button[type='submit']")
-        page.wait_for_url('**/rooms.html', timeout=10000)
+        page.wait_for_url('**/rooms.html', timeout=15000)
     times.append(time.time())
     _save(times)

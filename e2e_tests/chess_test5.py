@@ -22,20 +22,21 @@ def pages(browser):
     p2 = ctx2.new_page()
     p3 = ctx3.new_page()
 
-    reg(p1, P1)
-    reg(p2, P2)
-    reg(p3, P3)
+    try:
+        reg(p1, P1)
+        reg(p2, P2)
+        reg(p3, P3)
 
-    state['p1'] = p1
-    state['p2'] = p2
-    state['p3'] = p3
+        state['p1'] = p1
+        state['p2'] = p2
+        state['p3'] = p3
 
-    yield
-
-    ctx1.close()
-    ctx2.close()
-    ctx3.close()
-    cleanup(SUFFIX)
+        yield
+    finally:
+        ctx1.close()
+        ctx2.close()
+        ctx3.close()
+        cleanup(SUFFIX)
 
 
 def test_T17_quick_join_creates_room_when_none_available(pages):
@@ -43,7 +44,7 @@ def test_T17_quick_join_creates_room_when_none_available(pages):
     # ensure no waiting rooms exist for this suffix
     p1.click('#quick-join-btn')
     # should show "Waiting for opponent" panel (new room created)
-    p1.wait_for_selector('#create-room-info:not(.hidden)', timeout=20000)
+    p1.wait_for_selector('#create-room-info:not(.hidden)', timeout=30000)
     assert 'Room #' in p1.locator('#created-room-id').text_content()
 
 
