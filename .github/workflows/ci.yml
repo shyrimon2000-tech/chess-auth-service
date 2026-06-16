@@ -126,7 +126,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.PAT_TOKEN }}
 
       - name: Create .env.combined
         run: cat .env.e2e e2e_versions.env > .env.combined

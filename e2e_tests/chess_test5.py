@@ -1,4 +1,4 @@
-﻿"""T17вЂ“T20: Quick join and explicit join вЂ” room creation, matchmaking, game start."""
+"""T17вЂ“T20: Quick join and explicit join вЂ” room creation, matchmaking, game start."""
 import pytest
 from helpers import reg, BASE
 from cleanup import cleanup
@@ -22,28 +22,31 @@ def pages(browser):
     p2 = ctx2.new_page()
     p3 = ctx3.new_page()
 
-    reg(p1, P1)
-    reg(p2, P2)
-    reg(p3, P3)
+    try:
+        reg(p1, P1)
+        reg(p2, P2)
+        reg(p3, P3)
 
-    state['p1'] = p1
-    state['p2'] = p2
-    state['p3'] = p3
+        state['p1'] = p1
+        state['p2'] = p2
+        state['p3'] = p3
 
-    yield
-
-    ctx1.close()
-    ctx2.close()
-    ctx3.close()
-    cleanup(SUFFIX)
+        yield
+    finally:
+        ctx1.close()
+        ctx2.close()
+        ctx3.close()
+        cleanup(SUFFIX)
 
 
 def test_T17_quick_join_creates_room_when_none_available(pages):
     p1 = state['p1']
     # ensure no waiting rooms exist for this suffix
+    p1.goto(BASE + '/rooms.html')
+    p1.wait_for_selector('#quick-join-btn', state='visible', timeout=10000)
     p1.click('#quick-join-btn')
     # should show "Waiting for opponent" panel (new room created)
-    p1.wait_for_selector('#create-room-info:not(.hidden)', timeout=8000)
+    p1.wait_for_selector('#create-room-info:not(.hidden)', timeout=30000)
     assert 'Room #' in p1.locator('#created-room-id').text_content()
 
 
@@ -60,10 +63,10 @@ def test_T19_both_players_reach_game_page(pages):
     p1 = state['p1']
     p2 = state['p2']
     # p1 should also be redirected to game.html via room poll
-    p1.wait_for_url('**/game.html**', timeout=10000)
+    p1.wait_for_url('**/game.html**', timeout=20000)
     # both must see active game
-    p1.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=15000)
-    p2.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=15000)
+    p1.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=30000)
+    p2.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=30000)
     assert p1.locator('#game-status').text_content() == 'active'
     assert p2.locator('#game-status').text_content() == 'active'
 

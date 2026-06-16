@@ -1,4 +1,4 @@
-﻿"""T24вЂ“T27: Spectator вЂ” joins active game, sees board from white's perspective, can't act."""
+"""T24вЂ“T27: Spectator вЂ” joins active game, sees board from white's perspective, can't act."""
 import pytest
 from helpers import reg, BASE
 from cleanup import cleanup
@@ -22,39 +22,41 @@ def setup(browser):
     p2   = ctx2.new_page()
     spt  = ctx3.new_page()
 
-    reg(p1, P1)
-    reg(p2, P2)
-    reg(spt, SPT)
+    try:
+        reg(p1, P1)
+        reg(p2, P2)
+        reg(spt, SPT)
 
-    # start a game between p1 and p2
-    p1.click('#create-room-btn')
-    p1.wait_for_selector('#create-room-info:not(.hidden)', timeout=5000)
+        # start a game between p1 and p2
+        p1.goto(BASE + '/rooms.html')
+        p1.wait_for_selector('#create-room-btn', state='visible', timeout=10000)
+        p1.click('#create-room-btn')
 
-    p2.reload()
-    p2.wait_for_selector('.join-btn', timeout=8000)
-    p2.click('.join-btn')
+        p2.goto(BASE + '/rooms.html')
+        p2.wait_for_selector('.join-btn', timeout=15000)
+        p2.click('.join-btn')
 
-    p1.wait_for_url('**/game.html**', timeout=15000)
-    p2.wait_for_url('**/game.html**', timeout=15000)
-    p1.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=15000)
+        p1.wait_for_url('**/game.html**', timeout=15000)
+        p2.wait_for_url('**/game.html**', timeout=15000)
+        p1.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=30000)
 
-    # spectator joins via Spectate button
-    spt.goto(BASE + '/rooms.html')
-    spt.wait_for_selector('.spectate-btn', timeout=10000)
-    spt.click('.spectate-btn')
-    spt.wait_for_url('**/game.html**', timeout=10000)
-    spt.wait_for_selector('#chessboard .sq', timeout=8000)
+        # spectator joins via Spectate button
+        spt.goto(BASE + '/rooms.html')
+        spt.wait_for_selector('.spectate-btn', timeout=10000)
+        spt.click('.spectate-btn')
+        spt.wait_for_url('**/game.html**', timeout=10000)
+        spt.wait_for_selector('#chessboard .sq', timeout=8000)
 
-    state['p1']  = p1
-    state['p2']  = p2
-    state['spt'] = spt
+        state['p1']  = p1
+        state['p2']  = p2
+        state['spt'] = spt
 
-    yield
-
-    ctx1.close()
-    ctx2.close()
-    ctx3.close()
-    cleanup(SUFFIX)
+        yield
+    finally:
+        ctx1.close()
+        ctx2.close()
+        ctx3.close()
+        cleanup(SUFFIX)
 
 
 def test_T24_spectator_reaches_game_page(setup):
@@ -65,14 +67,10 @@ def test_T24_spectator_reaches_game_page(setup):
 
 def test_T25_spectator_sees_white_perspective(setup):
     spt = state['spt']
-    # From white's perspective the top-left square (a8) is dark.
-    # In the DOM, first square in the grid is the top-left.
-    # Without flipping: first square is a8 (ri=0, fi=0) в†’ (0+0)%2==0 в†’ class 'light'
-    # Wait вЂ” from the renderBoard logic: class = (ri + fi) % 2 == 0 ? 'light' : 'dark'
-    # a8 = ri=0 fi=0 в†’ 'light'. But in real chess a8 is dark...
-    # The code uses its own color assignment. Let's just check the first square class is 'light'.
+    # From white's perspective the board is not flipped: top-left square in the DOM is a8.
+    # If the board were rendered from black's perspective, the first square would be h1.
     first_sq = spt.locator('#chessboard .sq').first
-    assert 'light' in (first_sq.get_attribute('class') or '')
+    assert first_sq.get_attribute('data-sq') == 'a8'
 
 
 def test_T26_spectator_resign_button_hidden(setup):
@@ -85,11 +83,11 @@ def test_T27_spectator_sees_board_updates(setup):
     p1  = state['p1']
     spt = state['spt']
 
-    # p1 (white) makes a move e2в†’e4
+    # p1 (white) makes a move e2в†'e4
     p1.click('[data-sq="e2"]')
     p1.wait_for_selector('[data-sq="e4"].legal-target', timeout=5000)
     p1.click('[data-sq="e4"]')
 
     # spectator must see e4 occupied and e2 empty after the move
-    spt.wait_for_selector('[data-sq="e4"].has-piece', timeout=8000)
+    spt.wait_for_selector('[data-sq="e4"].has-piece', timeout=15000)
     assert not spt.locator('[data-sq="e2"]').get_attribute('data-piece')

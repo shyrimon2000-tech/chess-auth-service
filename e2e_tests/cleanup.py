@@ -10,7 +10,7 @@ COMPOSE_DIR = os.environ.get(
 
 def _exec(service, code):
     result = subprocess.run(
-        ['docker', 'compose', '-f', 'docker-compose.e2e.yml', 'exec', '-T', service, 'python', '-c', code],
+        ['docker', 'compose', '--env-file', '.env.combined', '-f', 'docker-compose.e2e.yml', 'exec', '-T', service, 'python', '-c', code],
         cwd=COMPOSE_DIR, capture_output=True, text=True
     )
     return result.stdout.strip()
@@ -60,6 +60,7 @@ print(r.rowcount)
 from app.database import SessionLocal
 from sqlalchemy import text
 db = SessionLocal()
+db.execute(text("DELETE FROM refresh_tokens WHERE user_id IN (SELECT id FROM users WHERE username LIKE \'%{suffix}%\')"))
 r = db.execute(text("DELETE FROM users WHERE username LIKE \'%{suffix}%\'"))
 db.commit()
 db.close()

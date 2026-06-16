@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.limiter import limiter
 from app.schemas import UserCreate, UserLogin, UserResponse, TokenResponse, RefreshTokenRequest, LogoutRequest, MessageResponse
+from app.config import settings
 from app.services.auth_service import register_user, login_user, refresh_access_token, logout_user
 from app.models import User
 from app.services.auth_dependencies import get_current_user, get_current_admin_user
@@ -15,7 +16,7 @@ router = APIRouter(
 
 
 @router.post("/register", response_model=UserResponse)
-@limiter.limit("5/minute")
+@limiter.limit(settings.REGISTER_RATE_LIMIT)
 def register(
     request: Request,
     user_data: UserCreate,

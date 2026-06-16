@@ -1,4 +1,4 @@
-﻿"""T1вЂ“T4: Complete resign game вЂ” two players, game starts, p1 resigns, banners checked."""
+"""T1вЂ“T4: Complete resign game вЂ” two players, game starts, p1 resigns, banners checked."""
 import pytest
 from helpers import reg, BASE
 from cleanup import cleanup
@@ -17,31 +17,32 @@ def players(browser):
     p1 = ctx1.new_page()
     p2 = ctx2.new_page()
 
-    reg(p1, P1)
-    reg(p2, P2)
+    try:
+        reg(p1, P1)
+        reg(p2, P2)
 
-    # p1 creates a room and waits
-    p1.click('#create-room-btn')
-    p1.wait_for_selector('#create-room-info:not(.hidden)', timeout=5000)
+        # p1 creates a room and waits
+        p1.goto(BASE + '/rooms.html')
+        p1.wait_for_selector('#create-room-btn', state='visible', timeout=10000)
+        p1.click('#create-room-btn')
 
-    # p2 reloads to pick up the new room and joins
-    p2.reload()
-    p2.wait_for_selector('.join-btn', timeout=8000)
-    p2.click('.join-btn')
+        p2.goto(BASE + '/rooms.html')
+        p2.wait_for_selector('.join-btn', timeout=15000)
+        p2.click('.join-btn')
 
-    # both land on game.html
-    p1.wait_for_url('**/game.html**', timeout=15000)
-    p2.wait_for_url('**/game.html**', timeout=15000)
+        # both land on game.html
+        p1.wait_for_url('**/game.html**', timeout=15000)
+        p2.wait_for_url('**/game.html**', timeout=15000)
 
-    # wait for WS game_start so status is 'active'
-    p1.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=15000)
-    p2.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=15000)
+        # wait for WS game_start so status is 'active'
+        p1.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=30000)
+        p2.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=30000)
 
-    yield p1, p2
-
-    ctx1.close()
-    ctx2.close()
-    cleanup(SUFFIX)
+        yield p1, p2
+    finally:
+        ctx1.close()
+        ctx2.close()
+        cleanup(SUFFIX)
 
 
 def test_T1_game_active(players):

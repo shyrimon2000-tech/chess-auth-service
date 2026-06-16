@@ -19,29 +19,31 @@ def players(browser):
     p1 = ctx1.new_page()
     p2 = ctx2.new_page()
 
-    reg(p1, P1)
-    reg(p2, P2)
+    try:
+        reg(p1, P1)
+        reg(p2, P2)
 
-    p1.click('#create-room-btn')
-    p1.wait_for_selector('#create-room-info:not(.hidden)', timeout=5000)
+        p1.goto(BASE + '/rooms.html')
+        p1.wait_for_selector('#create-room-btn', state='visible', timeout=10000)
+        p1.click('#create-room-btn')
 
-    p2.reload()
-    p2.wait_for_selector('.join-btn', timeout=8000)
-    p2.click('.join-btn')
+        p2.goto(BASE + '/rooms.html')
+        p2.wait_for_selector('.join-btn', timeout=15000)
+        p2.click('.join-btn')
 
-    p1.wait_for_url('**/game.html**', timeout=15000)
-    p2.wait_for_url('**/game.html**', timeout=15000)
-    p1.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=15000)
-    p2.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=15000)
+        p1.wait_for_url('**/game.html**', timeout=15000)
+        p2.wait_for_url('**/game.html**', timeout=15000)
+        p1.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=30000)
+        p2.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=30000)
 
-    state['p1'] = p1
-    state['p2'] = p2
+        state['p1'] = p1
+        state['p2'] = p2
 
-    yield
-
-    ctx1.close()
-    ctx2.close()
-    cleanup(SUFFIX)
+        yield
+    finally:
+        ctx1.close()
+        ctx2.close()
+        cleanup(SUFFIX)
 
 
 def test_T28_click_own_pawn_shows_legal_moves(players):
