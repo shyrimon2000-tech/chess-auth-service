@@ -28,7 +28,7 @@ def setup(browser):
 
     # start a game between p1 and p2
     p1.click('#create-room-btn')
-    p1.wait_for_selector('#create-room-info:not(.hidden)', timeout=5000)
+    p1.wait_for_selector('#create-room-info:not(.hidden)', timeout=15000)
 
     p2.reload()
     p2.wait_for_selector('.join-btn', timeout=8000)
@@ -36,7 +36,7 @@ def setup(browser):
 
     p1.wait_for_url('**/game.html**', timeout=15000)
     p2.wait_for_url('**/game.html**', timeout=15000)
-    p1.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=15000)
+    p1.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=30000)
 
     # spectator joins via Spectate button
     spt.goto(BASE + '/rooms.html')

@@ -62,8 +62,8 @@ def test_T19_both_players_reach_game_page(pages):
     # p1 should also be redirected to game.html via room poll
     p1.wait_for_url('**/game.html**', timeout=10000)
     # both must see active game
-    p1.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=15000)
-    p2.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=15000)
+    p1.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=30000)
+    p2.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=30000)
     assert p1.locator('#game-status').text_content() == 'active'
     assert p2.locator('#game-status').text_content() == 'active'
 

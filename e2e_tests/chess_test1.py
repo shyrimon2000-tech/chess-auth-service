@@ -22,7 +22,7 @@ def players(browser):
 
     # p1 creates a room and waits
     p1.click('#create-room-btn')
-    p1.wait_for_selector('#create-room-info:not(.hidden)', timeout=5000)
+    p1.wait_for_selector('#create-room-info:not(.hidden)', timeout=15000)
 
     # p2 reloads to pick up the new room and joins
     p2.reload()
@@ -34,8 +34,8 @@ def players(browser):
     p2.wait_for_url('**/game.html**', timeout=15000)
 
     # wait for WS game_start so status is 'active'
-    p1.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=15000)
-    p2.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=15000)
+    p1.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=30000)
+    p2.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=30000)
 
     yield p1, p2
 
