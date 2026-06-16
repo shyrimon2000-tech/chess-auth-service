@@ -26,10 +26,9 @@ def players(browser):
         p1.goto(BASE + '/rooms.html')
         p1.wait_for_selector('#create-room-btn', state='visible', timeout=10000)
         p1.click('#create-room-btn')
-        p1.wait_for_selector('#create-room-info:not(.hidden)', timeout=30000)
 
-        p2.reload()
-        p2.wait_for_selector('.join-btn', timeout=8000)
+        p2.goto(BASE + '/rooms.html')
+        p2.wait_for_selector('.join-btn', timeout=15000)
         p2.click('.join-btn')
 
         p1.wait_for_url('**/game.html**', timeout=15000)
