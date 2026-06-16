@@ -28,6 +28,8 @@ def setup(browser):
         reg(spt, SPT)
 
         # start a game between p1 and p2
+        p1.goto(BASE + '/rooms.html')
+        p1.wait_for_selector('#create-room-btn', state='visible', timeout=10000)
         p1.click('#create-room-btn')
         p1.wait_for_selector('#create-room-info:not(.hidden)', timeout=30000)
 
