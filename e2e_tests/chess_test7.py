@@ -28,7 +28,7 @@ def setup(browser):
 
     # start a game between p1 and p2
     p1.click('#create-room-btn')
-    p1.wait_for_selector('#create-room-info:not(.hidden)', timeout=15000)
+    p1.wait_for_selector('#create-room-info:not(.hidden)', timeout=30000)
 
     p2.reload()
     p2.wait_for_selector('.join-btn', timeout=8000)

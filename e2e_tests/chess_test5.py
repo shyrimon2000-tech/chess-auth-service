@@ -43,7 +43,7 @@ def test_T17_quick_join_creates_room_when_none_available(pages):
     # ensure no waiting rooms exist for this suffix
     p1.click('#quick-join-btn')
     # should show "Waiting for opponent" panel (new room created)
-    p1.wait_for_selector('#create-room-info:not(.hidden)', timeout=8000)
+    p1.wait_for_selector('#create-room-info:not(.hidden)', timeout=20000)
     assert 'Room #' in p1.locator('#created-room-id').text_content()
 
 

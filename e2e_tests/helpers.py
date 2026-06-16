@@ -5,7 +5,7 @@ import time
 BASE = 'http://localhost:8080'
 
 _TIMES_FILE = os.path.join(os.path.dirname(__file__), '.reg_times.json')
-_LIMIT = 5
+_LIMIT = 100
 _WINDOW = 60
 
 
