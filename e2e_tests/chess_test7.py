@@ -1,4 +1,4 @@
-﻿"""T24вЂ“T27: Spectator вЂ” joins active game, sees board from white's perspective, can't act."""
+"""T24вЂ“T27: Spectator вЂ” joins active game, sees board from white's perspective, can't act."""
 import pytest
 from helpers import reg, BASE
 from cleanup import cleanup
@@ -66,14 +66,10 @@ def test_T24_spectator_reaches_game_page(setup):
 
 def test_T25_spectator_sees_white_perspective(setup):
     spt = state['spt']
-    # From white's perspective the top-left square (a8) is dark.
-    # In the DOM, first square in the grid is the top-left.
-    # Without flipping: first square is a8 (ri=0, fi=0) в†’ (0+0)%2==0 в†’ class 'light'
-    # Wait вЂ” from the renderBoard logic: class = (ri + fi) % 2 == 0 ? 'light' : 'dark'
-    # a8 = ri=0 fi=0 в†’ 'light'. But in real chess a8 is dark...
-    # The code uses its own color assignment. Let's just check the first square class is 'light'.
+    # From white's perspective the board is not flipped: top-left square in the DOM is a8.
+    # If the board were rendered from black's perspective, the first square would be h1.
     first_sq = spt.locator('#chessboard .sq').first
-    assert 'light' in (first_sq.get_attribute('class') or '')
+    assert first_sq.get_attribute('data-sq') == 'a8'
 
 
 def test_T26_spectator_resign_button_hidden(setup):
@@ -86,7 +82,7 @@ def test_T27_spectator_sees_board_updates(setup):
     p1  = state['p1']
     spt = state['spt']
 
-    # p1 (white) makes a move e2в†’e4
+    # p1 (white) makes a move e2в†'e4
     p1.click('[data-sq="e2"]')
     p1.wait_for_selector('[data-sq="e4"].legal-target', timeout=5000)
     p1.click('[data-sq="e4"]')

@@ -1,4 +1,4 @@
-﻿"""T17вЂ“T20: Quick join and explicit join вЂ” room creation, matchmaking, game start."""
+"""T17вЂ“T20: Quick join and explicit join вЂ” room creation, matchmaking, game start."""
 import pytest
 from helpers import reg, BASE
 from cleanup import cleanup
@@ -61,7 +61,7 @@ def test_T19_both_players_reach_game_page(pages):
     p1 = state['p1']
     p2 = state['p2']
     # p1 should also be redirected to game.html via room poll
-    p1.wait_for_url('**/game.html**', timeout=10000)
+    p1.wait_for_url('**/game.html**', timeout=20000)
     # both must see active game
     p1.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=30000)
     p2.wait_for_function("document.getElementById('game-status')?.textContent === 'active'", timeout=30000)

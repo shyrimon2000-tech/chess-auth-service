@@ -29,7 +29,6 @@ def test_T22_login_with_wrong_password_shows_error(browser_ctx):
     page = browser_ctx
     # register then try to login with wrong password
     reg(page, P1)
-    cleanup(SUFFIX)  # clean up rooms if any, keep the user (auth-db not touched)
 
     # logout first so we're back at login page
     page.evaluate("localStorage.clear()")
@@ -40,7 +39,7 @@ def test_T22_login_with_wrong_password_shows_error(browser_ctx):
     page.click("#login-form button[type='submit']")
     page.wait_for_selector('#login-msg.visible', timeout=5000)
     msg = page.locator('#login-msg').text_content().lower()
-    assert 'fail' in msg or 'invalid' in msg or 'incorrect' in msg or 'wrong' in msg or 'check' in msg
+    assert 'invalid' in msg
 
 
 def test_T23_logout_clears_session(browser_ctx):

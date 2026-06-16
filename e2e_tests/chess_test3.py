@@ -1,4 +1,4 @@
-﻿"""T9вЂ“T12: Disconnect timeout вЂ” opponent banner shown, game abandoned, room deleted."""
+"""T9вЂ“T12: Disconnect timeout вЂ” opponent banner shown, game abandoned, room deleted."""
 import pytest
 from helpers import reg, BASE
 from cleanup import cleanup
@@ -42,7 +42,7 @@ def players(browser):
         yield
     finally:
         if not _setup_done:
-            ctx1.close()  # T9 closes ctx1 normally, but if setup failed T9 never ran
+            ctx1.close()
         ctx2.close()
         cleanup(SUFFIX)
 
